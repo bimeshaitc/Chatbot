@@ -62,19 +62,19 @@ export interface ScrapedPage {
   preview: string
 }
 
-export type FaqCategory = 'Product' | 'Technical' | 'Billing' | 'General'
+export type ArticleCategory = 'Product' | 'Technical' | 'Billing' | 'General'
 
-export interface SourceFaq {
-  id: string
-  category: FaqCategory
-  question: string
-  answer: string
-  isEnabled: boolean
-  answersServed: number
-  author: SourceAuthor
-  addedOn: string
+/**
+ * A short, directly-authored piece of bot content (title + body) — the same
+ * indexing lifecycle as a document or URL (status/chunks/retrain/audience),
+ * just written in-app instead of uploaded or crawled.
+ */
+export interface SourceArticle extends TrainableSource {
+  category: ArticleCategory
+  title: string
+  content: string
   /**
-   * The bot intents this FAQ answers, e.g. `orders.shipping_delay`. Lets the
+   * The bot intents this article answers, e.g. `orders.shipping_delay`. Lets the
    * chat feature surface "what the bot would say" for a conversation without
    * guessing from keywords — the tag is how a real retrieval index would mark
    * indexed content as belonging to a topic in the first place.
@@ -82,11 +82,11 @@ export interface SourceFaq {
   matchedIntents?: string[]
 }
 
-export type BotTrainingTab = 'documents' | 'urls' | 'faqs'
+export type BotTrainingTab = 'documents' | 'urls' | 'articles'
 
 /** Aliases kept so the shared table/dialog components read naturally. */
 export type KnowledgeAuthor = SourceAuthor
 export type KnowledgeDocument = SourceDocument
 export type WebsiteUrlEntry = SourceUrl
-export type FaqEntry = SourceFaq
+export type ArticleEntry = SourceArticle
 export type KnowledgeBaseTab = BotTrainingTab

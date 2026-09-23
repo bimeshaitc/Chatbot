@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { UploadCloud } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
-import { cn, generateId } from '@/lib/utils'
+import { generateId } from '@/lib/utils'
 import {
   Dialog,
   DialogBody,
@@ -13,12 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { createDefaultAuthor } from '../data/mockBotTrainingData'
 import { formatToday } from '../utils/formatDate'
-import type { SourceAudience, SourceDocument } from '../types'
-
-const audienceOptions: { value: SourceAudience; label: string }[] = [
-  { value: 'public', label: 'Anyone' },
-  { value: 'signed-in', label: 'Signed-in customers' },
-]
+import type { SourceDocument } from '../types'
 
 interface AddDocumentDialogProps {
   open: boolean
@@ -37,13 +32,11 @@ export function AddDocumentDialog({ open, onOpenChange, onAdd }: AddDocumentDial
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [audience, setAudience] = useState<SourceAudience>('public')
   const [error, setError] = useState<string | null>(null)
 
   function resetForm() {
     setName('')
     setFile(null)
-    setAudience('public')
     setError(null)
   }
 
@@ -76,7 +69,7 @@ export function AddDocumentDialog({ open, onOpenChange, onAdd }: AddDocumentDial
       name: name.trim(),
       sizeLabel: formatFileSize(file.size),
       status: 'queued',
-      audience,
+      audience: 'public',
       isEnabled: true,
       chunks: 0,
       answersServed: 0,
@@ -132,30 +125,6 @@ export function AddDocumentDialog({ open, onOpenChange, onAdd }: AddDocumentDial
               className="hidden"
               onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
             />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-gray-700">Who may see answers from this source?</span>
-            <div className="flex flex-wrap gap-1.5">
-              {audienceOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setAudience(option.value)}
-                  className={cn(
-                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                    audience === option.value
-                      ? 'border-[#1B5E20] bg-[#1B5E20] text-white'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400">
-              Staff-only material belongs in the Knowledge Base section, not here.
-            </p>
           </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}

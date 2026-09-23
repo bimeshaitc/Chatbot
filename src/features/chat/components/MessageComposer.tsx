@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpenCheck, Bot, Check, ChevronDown, Lock, Paperclip, Plus, Send, Smile, Sparkles, Tag, Users, X } from 'lucide-react'
-import { initialFaqs } from '@/features/bot-training'
+import { initialArticles } from '@/features/bot-training'
 import { useCannedResponses, visibleCannedResponses } from '@/features/canned-responses'
 import { useTags } from '@/features/tags'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,7 @@ import { useViewer } from '@/stores/useWorkspaceRoleStore'
 import { cn } from '@/lib/utils'
 import { emojiOptions } from '../data/mockChatData'
 import type { ComposerMode } from '../types'
-import { rankFaqsForIntent } from '../utils/knowledgeSuggestions'
+import { rankArticlesForIntent } from '../utils/knowledgeSuggestions'
 import { AddTagDialog } from './AddTagDialog'
 
 const modeCopy: Record<ComposerMode, { label: string; placeholder: string }> = {
@@ -102,7 +102,7 @@ export function MessageComposer({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isNote = mode === 'note'
-  const rankedFaqs = rankFaqsForIntent(initialFaqs, botIntent)
+  const rankedArticles = rankArticlesForIntent(initialArticles, botIntent)
 
   function handleSend() {
     // An attachment on its own is a valid message; text is not required then.
@@ -290,22 +290,22 @@ export function MessageComposer({
             <p className="px-2 pt-1 pb-0.5 text-[11px] font-medium tracking-wide text-gray-400 uppercase">
               From the knowledge base
             </p>
-            {rankedFaqs.map((faq) => (
+            {rankedArticles.map((article) => (
               <DropdownMenuItem
-                key={faq.id}
+                key={article.id}
                 className="flex-col items-start gap-0.5"
-                onClick={() => insertQuickReply(faq.answer)}
+                onClick={() => insertQuickReply(article.content)}
               >
                 <span className="flex w-full items-center gap-1.5">
                   <Bot className="h-3 w-3 shrink-0 text-violet-500" />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-gray-900">{faq.question}</span>
-                  {faq.isSuggested && (
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-gray-900">{article.title}</span>
+                  {article.isSuggested && (
                     <span className="shrink-0 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
                       Suggested
                     </span>
                   )}
                 </span>
-                <span className="line-clamp-2 pl-4.5 text-[11px] text-gray-500">{faq.answer}</span>
+                <span className="line-clamp-2 pl-4.5 text-[11px] text-gray-500">{article.content}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

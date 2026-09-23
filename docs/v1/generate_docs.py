@@ -87,8 +87,8 @@ FEATURES = [
      "No", "CSR and up (tickets.create)", "Must Have", "Implemented (prototype data)", "tickets.create"),
 
     ("FEAT-009", "Chat", "Agent-Assist: Ask Knowledge & Suggested Reply",
-     "In-chat panel that searches Internal Knowledge and suggests trained FAQs relevant to the conversation's matched bot intent.",
-     ["Ask Knowledge search panel", "Suggested-reply dialog ranking FAQs by matched intent",
+     "In-chat panel that searches Internal Knowledge and suggests trained articles relevant to the conversation's matched bot intent.",
+     ["Ask Knowledge search panel", "Quick-reply menu ranking trained articles by matched intent",
       "Editable draft only (never auto-sent)"],
      "Yes (ranking/search, deterministic in this prototype)", "CSR and up", "Should Have",
      "Implemented (prototype data)", "chats.reply, knowledge.internal.view"),
@@ -139,7 +139,8 @@ FEATURES = [
     ("FEAT-017", "Internal Knowledge", "Internal Knowledge Base",
      "Staff-only knowledge base (playbooks, procedures, policy docs) agents read while handling chats. Never fed to the bot or reachable by customers.",
      ["Articles tab: create/edit, category, groups, pin, review status (current/due/stale/draft)",
-      "Documents tab: upload/add internal document", "Links tab: add internal reference link"],
+      "Documents tab: upload/add internal document",
+      "Links tab: add an internal reference link as a single page or a multi-page site scan"],
      "No", "CSR (view), CSR Admin and up (manage)", "Must Have", "Implemented (prototype data)",
      "knowledge.internal.view, knowledge.internal.manage"),
 
@@ -152,15 +153,19 @@ FEATURES = [
 
     ("FEAT-019", "Chatbot Knowledge", "Bot Training Sources",
      "The AI bot's actual training data: documents and crawled URLs it indexes and answers from.",
-     ["Add source document", "Add source URL with crawl depth", "Enable / disable a source ('use for answers')",
+     ["Add source document", "Add source URL as a single page or a multi-page site scan (admin-configurable scan "
+      "depth/page-limit deferred to V2 — see AI-13/BE-15)", "Enable / disable a source ('use for answers')",
       "Retrain a source", "Delete a source", "Training status: indexed/indexing/queued/failed + failure reason",
-      "Public vs. signed-in audience setting"],
+      "Audience badge (public/signed-in) shown per source; audience is no longer admin-settable when adding a "
+      "source in V1 — every new document or URL source is public by default"],
      "Yes (core)", "CSR (view), Admin (manage), Admin (retrain)", "Must Have", "Implemented (prototype data)",
      "knowledge.bot.view, knowledge.bot.manage, knowledge.bot.retrain"),
 
-    ("FEAT-020", "Chatbot Knowledge", "Bot FAQ Management",
-     "Structured FAQs the bot can answer from directly, each tagged with the intents it matches.",
-     ["Add / edit FAQ (category, question, answer)", "Tag FAQ with matched bot intents",
+    ("FEAT-020", "Chatbot Knowledge", "Bot Article Management",
+     "Structured articles (title + content) the bot can answer from directly, each tagged with the intents it "
+     "matches. Same indexing lifecycle as documents/URLs (status, chunks, retrain) rather than an instant, "
+     "unindexed Q&A pair.",
+     ["Add / edit article (category, title, content)", "Tag article with matched bot intents",
       "Feeds Chat's suggested-reply ranking"],
      "Yes (core)", "Admin and up", "Must Have", "Implemented (prototype data)", "knowledge.bot.manage"),
 
@@ -354,7 +359,7 @@ FRONTEND_STORIES = [
     story("FE-10", "Agent-assist: Ask Knowledge / suggested reply", "CSR and up",
           "search internal knowledge or see a suggested reply while in a chat",
           "I can answer accurately without leaving the conversation",
-          ["Suggested FAQ is the one matching the conversation's bot intent, shown first",
+          ["Suggested article is the one matching the conversation's bot intent, shown first",
            "Search results below the weak-match threshold say so explicitly rather than showing low-quality matches",
            "Any suggested draft is inserted into the composer as editable text, never auto-sent"],
           ["A result flagged 'needs rewrite' (internal-only language) shows a visible warning before insertion",
@@ -415,11 +420,12 @@ FRONTEND_STORIES = [
            "Group-restricted content never appears to a viewer outside those groups"]),
 
     story("FE-17", "Chatbot knowledge management", "CSR (view), Admin (manage/retrain)",
-          "manage the documents, URLs, and FAQs the bot trains from",
+          "manage the documents, URLs, and articles the bot trains from",
           "the bot's answers stay accurate and current",
           ["Source list shows status (indexed/indexing/queued/failed) with failure reason when failed",
            "Enable/disable toggle clearly explains it stops the bot answering from that source without deleting it",
-           "FAQ editor supports tagging matched intents"],
+           "Article editor supports title/content and tagging matched intents, and goes through the same "
+           "indexed/indexing/queued/failed training lifecycle as documents and URLs"],
           ["Retrain and manage are separate actions/permissions — a viewer with only one sees only that one",
            "A failed source shows the failure reason prominently, not buried in a tooltip",
            "Disabling a source used heavily (high answers-served) still requires the same confirmation as any other"]),
@@ -621,16 +627,23 @@ BACKEND_STORIES = [
           "an ingestion pipeline for training documents and URLs that produces indexed, retrievable chunks",
           "the bot has an accurate, current knowledge base to answer from",
           ["Uploading a document or adding a URL enqueues an indexing job (status: queued -> indexing -> indexed/failed)",
-           "Adding a URL first runs a discovery scan, bounded by a caller-supplied crawl depth (1/2/3 levels) and max-page cap (10/25/50/100), returning each candidate page's title, path, and a short content preview for the admin to pick from before anything is indexed — the discovery contract AI-13 builds its ranking/preview behavior on",
+           "Adding a URL is a choice of single page or multi-page site scan only in V1 — the admin does not choose a "
+           "crawl depth or page cap; the scan uses a fixed internal depth/page-limit. Admin-configurable scan depth "
+           "and max-page cap are deferred to V2",
+           "The discovery scan returns each candidate page's title, path, and a short content preview for the admin "
+           "to pick from before anything is indexed — the discovery contract AI-13 builds its ranking/preview "
+           "behavior on",
            "Only pages the admin selects from that discovery result are enqueued as sources, one page per source (never one job per whole site)",
+           "Every source added through V1's document or URL flow is created with public audience — audience is not "
+           "admin-settable at add-time in V1 (existing signed-in-only sources from prior data remain readable/displayable)",
            "A failed job records a specific, actionable failure reason",
            "Disabling a source stops it from being used for answers without deleting its indexed data",
            "Retrain re-runs ingestion for an existing source and updates lastTrainedOn"],
           ["A source that fails repeatedly surfaces this clearly rather than silently retrying forever",
            "Re-indexing an updated URL/document does not leave orphaned old chunks being served",
            "A page the crawler can't authenticate to (e.g. sign-in required) is still returned from discovery, flagged with a specific reason (e.g. '401 Unauthorized'), rather than silently omitted",
-           "Re-running discovery against the same URL/depth/max-pages is deterministic — the same pages come back, not a different set each time",
-           "Crawl depth and max-page cap are enforced together server-side even if a client omits or tampers with them"]),
+           "Re-running discovery against the same URL is deterministic — the same fixed-size set of pages comes back, not a different set each time",
+           "V1's fixed internal scan depth/page-limit is enforced server-side regardless of what a client sends — there is no client-supplied depth/cap to trust or tamper with until V2 introduces one"]),
 
     story("BE-16", "Widget/bot settings configuration service", "bot-settings frontend / widget runtime",
           "persisted widget configuration that both the admin UI and the live customer-facing widget read",
@@ -772,13 +785,14 @@ AI_STORIES = [
            "Extremely large documents are chunked within defined size bounds rather than producing a single unusable mega-chunk",
            "A disabled source's chunks are excluded from retrieval immediately, not after the next reindex cycle"]),
 
-    story("AI-07", "FAQ intent tagging & retrieval ranking", "chat suggested-reply system",
-          "FAQs to be tagged with the intents they answer and ranked accordingly when suggesting a reply",
-          "the agent sees the single most relevant FAQ first instead of a generic list",
-          ["FAQ tagged with matched intents is prioritized when that intent is matched on the live conversation",
-           "Disabled FAQs are excluded from ranking entirely, matching that the bot itself would never answer from them"],
-          ["A FAQ matching multiple intents ranks correctly for whichever intent is actually active on this conversation, not just its first tag",
-           "No FAQ matches the current intent: the system returns an honest empty/low-confidence result rather than a weak forced suggestion"]),
+    story("AI-07", "Article intent tagging & retrieval ranking", "chat suggested-reply system",
+          "articles to be tagged with the intents they answer and ranked accordingly when suggesting a reply",
+          "the agent sees the single most relevant article first instead of a generic list",
+          ["An article tagged with matched intents is prioritized when that intent is matched on the live conversation",
+           "Disabled articles are excluded from ranking entirely, matching that the bot itself would never answer from them",
+           "An article still queued/indexing/failed is excluded from ranking too — same rule as a disabled one: the bot itself wouldn't be answering from it yet"],
+          ["An article matching multiple intents ranks correctly for whichever intent is actually active on this conversation, not just its first tag",
+           "No article matches the current intent: the system returns an honest empty/low-confidence result rather than a weak forced suggestion"]),
 
     story("AI-08", "Agent-assist: internal knowledge search & reply draft generation", "chat / knowledge-base frontend",
           "a search over internal knowledge that turns a match into an editable customer-reply draft",
@@ -824,16 +838,17 @@ AI_STORIES = [
            "A retrain triggered while a previous indexing job for the same source is still running is queued or rejected, never run concurrently against the same source"]),
 
     story("AI-13", "Website crawl: page discovery and per-page source creation", "bot-training system",
-          "a submitted website URL to be crawled — discovering individual pages up to a chosen depth and page limit",
+          "a submitted website URL to be scanned as a single page or crawled as a multi-page site — discovering individual pages behind a fixed internal depth/page limit in V1",
           "admins can review real, specific pages and choose exactly which ones become trainable sources, instead of blindly training on an entire site",
           ["Builds on BE-15's discovery contract (Epic 6 — Knowledge & Canned Content): BE-15 owns crawling, the discovery scan, and the status pipeline; this story owns turning each discovered page into an accurate title/path/content preview an admin can judge",
-           "Submitting a URL with a crawl depth (1/2/3 levels deep) and a max-page cap (10/25/50/100) starts a real crawl that discovers pages progressively, each with a title, path, and short content preview — not a single bulk result",
-           "Depth and max-pages combine correctly as hard caps: a 1-level-deep crawl never returns more pages than that depth could reach, even if the page cap is higher",
-           "Each page the admin selects from the discovered list becomes its own independent trainable source (one page = one source) and enters the same status pipeline as AI-06 (queued -> indexing -> indexed/failed)",
+           "V1 offers only a single-page-vs-multiple-page choice — no admin-facing crawl depth or max-page cap. Choosing 'multiple pages' starts a real scan that discovers pages progressively against a fixed internal depth/page-limit, each with a title, path, and short content preview — not a single bulk result",
+           "Choosing 'single page' skips discovery entirely and adds exactly the submitted URL as one source — no scan step at all",
+           "Each page the admin selects from a multi-page discovery becomes its own independent trainable source (one page = one source) and enters the same status pipeline as AI-06 (queued -> indexing -> indexed/failed)",
            "A page's source name defaults to that page's own title; an optional source-name prefix, if provided, is applied consistently to every page added from that scan",
-           "The audience setting (Anyone / Signed-in customers) chosen once for the scan applies to every page created from it"],
-          ["A discovered page the crawler can't access (e.g. sign-in required) is not silently dropped — it is still listed, marked failed with a specific reason (e.g. '401 Unauthorized'), and visible to the admin",
-           "Re-running 'Rescan' against the same URL/depth/max-pages returns a consistent, repeatable set of pages, not a different random result each time",
+           "Every source created from this flow is public — there is no audience choice at add-time in V1"],
+          ["Deferred to V2: admin-configurable crawl depth (e.g. 1/2/3 levels) and a max-page cap, plus per-scan audience (public/signed-in) selection — V1 intentionally ships the simpler single/multiple-page, always-public version described above",
+           "A discovered page the crawler can't access (e.g. sign-in required) is not silently dropped — it is still listed, marked failed with a specific reason (e.g. '401 Unauthorized'), and visible to the admin",
+           "Re-running 'Rescan' against the same URL returns a consistent, repeatable set of pages, not a different random result each time",
            "A page deselected before submitting is never created as a source at all (not created-then-disabled)",
            "A page whose content changes after being added is picked up correctly by the existing retrain flow (AI-12) — the crawl origin doesn't create a separate update path"]),
 ]
@@ -1432,14 +1447,15 @@ PLAIN_REQUIREMENTS = [
 
     ("Chatbot Knowledge — including learning from your website",
      "This is what the AI bot itself actually learns from and answers with — separate from the internal knowledge base above (that's for staff), and separate from the bot's appearance (that's Bot Setting below).",
-     [("Learn from your website: ", "give the bot a page URL and how many links deep to follow from it, and it reads those pages and learns from them automatically — the same way a search engine would, no manual copy-pasting required."),
+     [("Learn from your website: ", "give the bot a page URL and choose whether to add just that one page or scan the whole site for more, and it reads those pages and learns from them automatically — the same way a search engine would, no manual copy-pasting required. Fine-grained control over how deep the scan goes and how many pages it collects is planned for a later release."),
       "Add a source document — upload a file and the bot reads and learns from it.",
       "Turn any source on or off — an off source stops being used for answers immediately, without deleting it.",
       "Retrain a source any time to pick up changes, and see its status: indexed and ready, still indexing, queued, or failed (with a reason why, if it failed).",
-      "Add structured FAQs directly — a question, an answer, and which topics it should match.",
+      "Write a structured article directly — a title, content, and which topics it should match — and it goes "
+      "through the same training pipeline as a document or URL.",
       "See how much each source is actually being used, and when it was last trained."],
      "Every CSR can see what the bot knows (read-only); Admins manage sources, add new ones, and retrain them.",
-     "FE-17 · BE-15 · AI-06, AI-07, AI-12"),
+     "FE-17 · BE-15 · AI-06, AI-07, AI-12, AI-13"),
 
     ("Campaigns",
      "Proactive, pop-up-style messages sent to visitors on your site — a sale announcement, a welcome message — not something the visitor has to ask for.",

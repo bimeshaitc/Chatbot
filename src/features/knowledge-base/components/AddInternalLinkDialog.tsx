@@ -12,12 +12,19 @@ import {
   DialogPrimaryButton,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { generateId } from '@/lib/utils'
-import { articleCategories, createDefaultOwner, crawlDepthOptions, maxPagesOptions, scrapePagesFor } from '../data/mockKnowledgeBaseData'
+import { cn, generateId } from '@/lib/utils'
+import { articleCategories, createDefaultOwner, scrapePagesFor } from '../data/mockKnowledgeBaseData'
 import { formatToday } from '../utils/formatDate'
 import type { ArticleCategory, InternalLink, KnowledgeVisibility, ScrapedPage } from '../types'
 import { GroupPicker } from './GroupPicker'
 import { VisibilityToggle } from './VisibilityToggle'
+
+type PageMode = 'single' | 'multiple'
+
+const pageModeOptions: { value: PageMode; label: string }[] = [
+  { value: 'single', label: 'Single page' },
+  { value: 'multiple', label: 'Multiple pages (scan site)' },
+]
 
 interface AddInternalLinkDialogProps {
   open: boolean
@@ -46,8 +53,7 @@ function isLikelyUrl(value: string): boolean {
 export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd }: AddInternalLinkDialogProps) {
   const [label, setLabel] = useState('')
   const [url, setUrl] = useState('')
-  const [crawlDepth, setCrawlDepth] = useState<string | null>(null)
-  const [maxPages, setMaxPages] = useState<string | null>(null)
+  const [pageMode, setPageMode] = useState<PageMode>('single')
   const [category, setCategory] = useState<ArticleCategory | null>(null)
   const [groups, setGroups] = useState<string[]>([])
   const [visibility, setVisibility] = useState<KnowledgeVisibility>('internal')
@@ -81,21 +87,31 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
     timers.current.add(id)
   }
 
-  function resetForm() {
+  function resetScan() {
     timers.current.forEach(clearTimeout)
     timers.current.clear()
-    setLabel('')
-    setUrl('')
-    setCrawlDepth(null)
-    setMaxPages(null)
-    setCategory(null)
-    setGroups([])
-    setVisibility('internal')
-    setError(null)
     setScanState('idle')
     setDiscovered([])
     setVisibleCount(0)
     setSelectedPaths(new Set())
+  }
+
+  function resetForm() {
+    resetScan()
+    setLabel('')
+    setUrl('')
+    setPageMode('single')
+    setCategory(null)
+    setGroups([])
+    setVisibility('internal')
+    setError(null)
+  }
+
+  function selectPageMode(mode: PageMode) {
+    if (mode === pageMode) return
+    setPageMode(mode)
+    resetScan()
+    setError(null)
   }
 
   function toggleGroup(group: string) {
@@ -120,21 +136,13 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
       setError('Enter a valid web address.')
       return
     }
-    if (!crawlDepth) {
-      setError('Select a scan depth.')
-      return
-    }
-    if (!maxPages) {
-      setError('Select a page limit.')
-      return
-    }
     if (!category) {
       setError('Select a category.')
       return
     }
 
     setError(null)
-    const pages = scrapePagesFor(crawlDepth, Number(maxPages))
+    const pages = scrapePagesFor()
     setDiscovered(pages)
     setVisibleCount(0)
     setSelectedPaths(new Set())
@@ -143,6 +151,33 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
   }
 
   function handleSubmit() {
+    if (pageMode === 'single') {
+      if (!url.trim() || !isLikelyUrl(url.trim())) {
+        setError('Enter a valid web address.')
+        return
+      }
+      if (!category) {
+        setError('Select a category.')
+        return
+      }
+
+      const normalisedUrl = /^[a-z]+:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`
+      const link: InternalLink = {
+        id: generateId(),
+        label: label.trim() || normalisedUrl,
+        url: normalisedUrl,
+        category,
+        groups,
+        visibility,
+        owner: createDefaultOwner(),
+        addedOn: formatToday(),
+      }
+      onAdd([link])
+      resetForm()
+      onOpenChange(false)
+      return
+    }
+
     if (scanState !== 'done') {
       handleScan()
       return
@@ -198,41 +233,30 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
           <fieldset disabled={scanState !== 'idle'} className="flex flex-col gap-4 disabled:opacity-60">
             <div className="flex flex-col gap-1">
               <Input label="Name" placeholder="e.g. Carrier claims portal" value={label} onChange={(e) => setLabel(e.target.value)} />
-              <span className="text-xs text-gray-400">If left empty, each page's own title is used</span>
+              <span className="text-xs text-gray-400">
+                {pageMode === 'single' ? 'If left empty, the web address is used' : "If left empty, each page's own title is used"}
+              </span>
             </div>
             <Input label="Web address *" placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} />
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700">Scan depth *</span>
-                <Select value={crawlDepth} onValueChange={(value) => setCrawlDepth(value as string)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="select depth" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {crawlDepthOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700">Max pages *</span>
-                <Select value={maxPages} onValueChange={(value) => setMaxPages(value as string)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="select limit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {maxPagesOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-gray-700">How many pages?</span>
+              <div className="flex flex-wrap gap-1.5">
+                {pageModeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => selectPageMode(option.value)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      pageMode === option.value
+                        ? 'border-[#1B5E20] bg-[#1B5E20] text-white'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -262,7 +286,7 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
             </p>
           </fieldset>
 
-          {scanState !== 'idle' && (
+          {pageMode === 'multiple' && scanState !== 'idle' && (
             <div className="mt-4 flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3">
               {scanState === 'scanning' ? (
                 <div className="flex items-center gap-2">
@@ -336,9 +360,10 @@ export function AddInternalLinkDialog({ open, groupOptions, onOpenChange, onAdd 
         </DialogBody>
         <DialogFooter>
           <DialogPrimaryButton onClick={handleSubmit} disabled={scanState === 'scanning'}>
-            {scanState === 'idle' && 'Scan site'}
-            {scanState === 'scanning' && 'Scanning…'}
-            {scanState === 'done' && `Add ${selectedPaths.size} page${selectedPaths.size === 1 ? '' : 's'}`}
+            {pageMode === 'single' && 'Add link'}
+            {pageMode === 'multiple' && scanState === 'idle' && 'Scan site'}
+            {pageMode === 'multiple' && scanState === 'scanning' && 'Scanning…'}
+            {pageMode === 'multiple' && scanState === 'done' && `Add ${selectedPaths.size} page${selectedPaths.size === 1 ? '' : 's'}`}
           </DialogPrimaryButton>
         </DialogFooter>
       </DialogContent>

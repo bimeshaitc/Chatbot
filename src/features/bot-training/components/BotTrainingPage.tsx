@@ -7,20 +7,20 @@ import { PageHeader } from '@/components/PageHeader'
 import { roleCan } from '@/config/roles'
 import { useWorkspaceRoleStore } from '@/stores/useWorkspaceRoleStore'
 import { cn } from '@/lib/utils'
-import type { BotTrainingTab, SourceDocument, SourceFaq, SourceUrl } from '../types'
-import { initialDocuments, initialFaqs, initialWebsiteUrls } from '../data/mockBotTrainingData'
+import type { BotTrainingTab, SourceArticle, SourceDocument, SourceUrl } from '../types'
+import { initialArticles, initialDocuments, initialWebsiteUrls } from '../data/mockBotTrainingData'
 import { formatToday } from '../utils/formatDate'
 import { SourceDocumentsTable } from './SourceDocumentsTable'
 import { SourceUrlsTable } from './SourceUrlsTable'
-import { FaqList } from './FaqList'
+import { SourceArticlesTable } from './SourceArticlesTable'
 import { AddDocumentDialog } from './AddDocumentDialog'
 import { AddUrlDialog } from './AddUrlDialog'
-import { FaqDialog } from './FaqDialog'
+import { ArticleDialog } from './ArticleDialog'
 
 const tabs: { id: BotTrainingTab; label: string }[] = [
   { id: 'documents', label: 'Documents' },
   { id: 'urls', label: 'Website URLs' },
-  { id: 'faqs', label: 'FAQs' },
+  { id: 'articles', label: 'Articles' },
 ]
 
 export function BotTrainingPage() {
@@ -47,13 +47,13 @@ export function BotTrainingPage() {
 
   const [documents, setDocuments] = useState<SourceDocument[]>(initialDocuments)
   const [websiteUrls, setWebsiteUrls] = useState<SourceUrl[]>(initialWebsiteUrls)
-  const [faqs, setFaqs] = useState<SourceFaq[]>(initialFaqs)
+  const [articles, setArticles] = useState<SourceArticle[]>(initialArticles)
 
   const [isDocumentDialogOpen, setDocumentDialogOpen] = useState(false)
   const [isUrlDialogOpen, setUrlDialogOpen] = useState(false)
-  const [faqDialogState, setFaqDialogState] = useState<{ open: boolean; faq: SourceFaq | null }>({
+  const [articleDialogState, setArticleDialogState] = useState<{ open: boolean; article: SourceArticle | null }>({
     open: false,
-    faq: null,
+    article: null,
   })
 
   const filteredDocuments = useMemo(
@@ -69,23 +69,23 @@ export function BotTrainingPage() {
       ),
     [websiteUrls, search],
   )
-  const filteredFaqs = useMemo(
-    () => faqs.filter((faq) => faq.question.toLowerCase().includes(search.toLowerCase())),
-    [faqs, search],
+  const filteredArticles = useMemo(
+    () => articles.filter((article) => article.title.toLowerCase().includes(search.toLowerCase())),
+    [articles, search],
   )
 
   const summary = useMemo(() => {
-    const trainable = [...documents, ...websiteUrls]
+    const trainable = [...documents, ...websiteUrls, ...articles]
     return {
-      total: trainable.length + faqs.length,
+      total: trainable.length,
       indexed: trainable.filter((source) => source.status === 'indexed').length,
       pending: trainable.filter((source) => source.status === 'indexing' || source.status === 'queued').length,
       failed: trainable.filter((source) => source.status === 'failed').length,
-      disabled: [...trainable, ...faqs].filter((source) => !source.isEnabled).length,
+      disabled: trainable.filter((source) => !source.isEnabled).length,
       chunks: trainable.reduce((sum, source) => sum + source.chunks, 0),
-      answers: [...trainable, ...faqs].reduce((sum, source) => sum + source.answersServed, 0),
+      answers: trainable.reduce((sum, source) => sum + source.answersServed, 0),
     }
-  }, [documents, websiteUrls, faqs])
+  }, [documents, websiteUrls, articles])
 
   function handleAddDocument(doc: SourceDocument) {
     setDocuments((prev) => [doc, ...prev])
@@ -147,15 +147,32 @@ export function BotTrainingPage() {
     toast.info('Source deleted. The bot will stop answering from it after the next rebuild.')
   }
 
-  function handleSaveFaq(faq: SourceFaq) {
-    setFaqs((prev) => {
-      const exists = prev.some((item) => item.id === faq.id)
-      return exists ? prev.map((item) => (item.id === faq.id ? faq : item)) : [faq, ...prev]
+  function handleSaveArticle(article: SourceArticle) {
+    setArticles((prev) => {
+      const exists = prev.some((item) => item.id === article.id)
+      return exists ? prev.map((item) => (item.id === article.id ? article : item)) : [article, ...prev]
     })
   }
 
-  function handleDeleteFaq(id: string) {
-    setFaqs((prev) => prev.filter((faq) => faq.id !== id))
+  function handleDeleteArticle(id: string) {
+    setArticles((prev) => prev.filter((article) => article.id !== id))
+  }
+
+  function retrainArticle(id: string) {
+    setArticles((prev) =>
+      prev.map((article) =>
+        article.id === id
+          ? { ...article, status: 'indexing', failureReason: undefined, lastTrainedOn: 'In progress' }
+          : article,
+      ),
+    )
+    toast.success('Retraining started')
+  }
+
+  function toggleArticleEnabled(id: string) {
+    setArticles((prev) =>
+      prev.map((article) => (article.id === id ? { ...article, isEnabled: !article.isEnabled } : article)),
+    )
   }
 
   function retrainDocument(id: string) {
@@ -184,6 +201,7 @@ export function BotTrainingPage() {
 
   function retrainEverything() {
     setDocuments((prev) => prev.map((doc) => ({ ...doc, status: 'indexing', lastTrainedOn: 'In progress' })))
+    setArticles((prev) => prev.map((article) => ({ ...article, status: 'indexing', lastTrainedOn: 'In progress' })))
     // Stagger the starts slightly so a "retrain everything" click does not
     // read as five identical bars ticking in perfect lockstep.
     websiteUrls.forEach((entry, index) => after(index * 250, () => simulateCrawl(entry.id)))
@@ -282,8 +300,8 @@ export function BotTrainingPage() {
             <Button onClick={() => setDocumentDialogOpen(true)}>+ Add document</Button>
           )}
           {canManage && activeTab === 'urls' && <Button onClick={() => setUrlDialogOpen(true)}>+ Add URL</Button>}
-          {canManage && activeTab === 'faqs' && (
-            <Button onClick={() => setFaqDialogState({ open: true, faq: null })}>+ Add FAQs</Button>
+          {canManage && activeTab === 'articles' && (
+            <Button onClick={() => setArticleDialogState({ open: true, article: null })}>+ Add Article</Button>
           )}
         </div>
 
@@ -308,12 +326,15 @@ export function BotTrainingPage() {
               onRetrain={retrainUrl}
             />
           )}
-          {activeTab === 'faqs' && (
-            <FaqList
-              faqs={filteredFaqs}
+          {activeTab === 'articles' && (
+            <SourceArticlesTable
+              articles={filteredArticles}
               canManage={canManage}
-              onEdit={(faq) => setFaqDialogState({ open: true, faq })}
-              onDelete={handleDeleteFaq}
+              canRetrain={canRetrain}
+              onEdit={(article) => setArticleDialogState({ open: true, article })}
+              onDelete={handleDeleteArticle}
+              onToggleEnabled={toggleArticleEnabled}
+              onRetrain={retrainArticle}
             />
           )}
         </div>
@@ -325,11 +346,11 @@ export function BotTrainingPage() {
           <AddUrlDialog open={isUrlDialogOpen} onOpenChange={setUrlDialogOpen} onAdd={handleAddUrls} />
         </>
       )}
-      {faqDialogState.open && (
-        <FaqDialog
-          faq={faqDialogState.faq}
-          onClose={() => setFaqDialogState({ open: false, faq: null })}
-          onSave={handleSaveFaq}
+      {articleDialogState.open && (
+        <ArticleDialog
+          article={articleDialogState.article}
+          onClose={() => setArticleDialogState({ open: false, article: null })}
+          onSave={handleSaveArticle}
         />
       )}
     </div>

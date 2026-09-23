@@ -1,4 +1,4 @@
-import { CircleSlash, MoreVertical, Play, RotateCw, Trash2 } from 'lucide-react'
+import { CircleSlash, MoreVertical, Pencil, Play, RotateCw, Trash2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,8 @@ interface SourceActionsMenuProps {
   canManage: boolean
   /** `knowledge.bot.retrain` — separate from `.manage` so a role could hold one without the other. */
   canRetrain: boolean
+  /** Only directly-authored sources (articles) offer in-place editing; documents/URLs don't. */
+  onEdit?: () => void
   onToggleEnabled: () => void
   onRetrain: () => void
   onDelete: () => void
@@ -22,6 +24,7 @@ export function SourceActionsMenu({
   isEnabled,
   canManage,
   canRetrain,
+  onEdit,
   onToggleEnabled,
   onRetrain,
   onDelete,
@@ -37,6 +40,12 @@ export function SourceActionsMenu({
         <MoreVertical className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-48">
+        {canManage && onEdit && (
+          <DropdownMenuItem onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </DropdownMenuItem>
+        )}
         {canRetrain && (
           <DropdownMenuItem onClick={onRetrain}>
             <RotateCw className="h-3.5 w-3.5" />

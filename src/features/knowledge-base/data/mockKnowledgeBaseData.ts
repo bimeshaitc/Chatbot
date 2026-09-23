@@ -221,18 +221,6 @@ export function createDefaultOwner(): ArticleAuthor {
   return jamesKatwal
 }
 
-export const crawlDepthOptions: { value: string; label: string }[] = [
-  { value: '1', label: '1 level deep' },
-  { value: '2', label: '2 levels deep' },
-  { value: '3', label: '3 levels deep' },
-]
-
-export const maxPagesOptions: { value: string; label: string }[] = [
-  { value: '10', label: 'Up to 10 pages' },
-  { value: '25', label: 'Up to 25 pages' },
-  { value: '50', label: 'Up to 50 pages' },
-]
-
 /** The pages a scan can discover, most-linked-from-homepage first. */
 const SCRAPE_PAGE_POOL: { path: string; title: string }[] = [
   { path: '/', title: 'Home' },
@@ -249,19 +237,19 @@ const SCRAPE_PAGE_POOL: { path: string; title: string }[] = [
   { path: '/terms', title: 'Terms of service' },
 ]
 
+/** How many pages a "multiple pages" scan surfaces — fixed, not admin-configurable in V1 (see V2 note in the AI-13/BE-15 stories). */
+const MULTI_PAGE_SCAN_CAP = 8
+
 /**
  * Simulates what scanning a site would turn up, for the Add website link
- * dialog's page picker. A deeper scan reaches further into the pool;
- * `maxPages` caps it further on top. Deterministic (no `Math.random`) so
- * re-scanning the same depth/cap always finds the same pages. Mirrors
- * `features/bot-training`'s own `scrapePagesFor` — this feature only ever
- * bookmarks a page for agents, never feeds it to the chatbot, so the two
- * stay independent rather than sharing one crawler.
+ * dialog's page picker in "multiple pages" mode. Deterministic (no
+ * `Math.random`) so re-scanning the same site always finds the same pages.
+ * Mirrors `features/bot-training`'s own `scrapePagesFor` — this feature only
+ * ever bookmarks a page for agents, never feeds it to the chatbot, so the
+ * two stay independent rather than sharing one crawler.
  */
-export function scrapePagesFor(crawlDepth: string, maxPages: number): ScrapedPage[] {
-  const depthBudget = crawlDepth === '1' ? 4 : crawlDepth === '2' ? 8 : SCRAPE_PAGE_POOL.length
-  const count = Math.max(1, Math.min(maxPages, depthBudget, SCRAPE_PAGE_POOL.length))
-  return SCRAPE_PAGE_POOL.slice(0, count).map((page, index) => {
+export function scrapePagesFor(): ScrapedPage[] {
+  return SCRAPE_PAGE_POOL.slice(0, MULTI_PAGE_SCAN_CAP).map((page, index) => {
     const words = 120 + index * 45
     const detected = index % 3 === 0 ? 'a contact form' : index % 3 === 1 ? 'a pricing table' : 'no forms'
     return { ...page, preview: `~${words} words rendered · ${detected} detected.` }

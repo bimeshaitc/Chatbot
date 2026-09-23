@@ -1,4 +1,4 @@
-import type { FaqCategory, ScrapedPage, SourceAuthor, SourceDocument, SourceFaq, SourceUrl } from '../types'
+import type { ArticleCategory, ScrapedPage, SourceArticle, SourceAuthor, SourceDocument, SourceUrl } from '../types'
 
 const jamesKatwal: SourceAuthor = {
   name: 'James Katwal',
@@ -161,37 +161,49 @@ export const initialWebsiteUrls: SourceUrl[] = [
   },
 ]
 
-export const initialFaqs: SourceFaq[] = [
+export const initialArticles: SourceArticle[] = [
   {
-    id: 'faq-1',
+    id: 'article-1',
     category: 'Technical',
-    question: 'How do I check my current balance?',
-    answer:
+    title: 'How do I check my current balance?',
+    content:
       'You can see your balance instantly by logging into the "Accounts" tab or asking me "What\'s my balance?" if you\'ve enabled secure chat banking.',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 214,
+    lastTrainedOn: '02-Jan-2026',
     author: ramKatwal,
     addedOn: '02-Jan-2026',
   },
   {
-    id: 'faq-2',
+    id: 'article-2',
     category: 'Technical',
-    question: "I see a transaction I don't recognize. How do I dispute it?",
-    answer:
+    title: "I see a transaction I don't recognize. How do I dispute it?",
+    content:
       'You can flag any transaction within 60 days. Select the transaction in your history and click "Dispute." Our fraud team will review it within 5-7 days.',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 91,
+    lastTrainedOn: '02-Jan-2026',
     author: ramKatwal,
     addedOn: '02-Jan-2026',
   },
   {
-    id: 'faq-3',
+    id: 'article-3',
     category: 'Billing',
-    question: 'How long does the loan approval process take?',
-    answer:
+    title: 'How long does the loan approval process take?',
+    content:
       'Most digital applications are reviewed within 24 hours. Once approved, funds are typically deposited in 1-3 business days.',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: false,
+    chunks: 1,
     answersServed: 12,
+    lastTrainedOn: '02-Jan-2026',
     author: ramKatwal,
     addedOn: '02-Jan-2026',
   },
@@ -199,101 +211,133 @@ export const initialFaqs: SourceFaq[] = [
   // composer's "From knowledge base" list can surface the one the bot would
   // already have used for the conversation on screen. ----
   {
-    id: 'faq-4',
+    id: 'article-4',
     category: 'Billing',
-    question: 'My card was declined at checkout. What do I do?',
-    answer:
+    title: 'My card was declined at checkout. What do I do?',
+    content:
       "I'm sorry for the trouble. Please make sure the card number is entered without spaces or dashes. If it still fails, your bank may have placed a temporary hold that clears in a few minutes.",
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 268,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['billing.card_declined'],
   },
   {
-    id: 'faq-5',
+    id: 'article-5',
     category: 'Product',
-    question: 'When will my refund show up?',
-    answer:
+    title: 'When will my refund show up?',
+    content:
       'Once we receive a return, refunds settle back to the original payment method within 5-7 business days. I will keep an eye on this one and follow up if it slips.',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 176,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['orders.refund_status'],
   },
   {
-    id: 'faq-6',
+    id: 'article-6',
     category: 'Product',
-    question: 'Why has my order not shipped yet?',
-    answer:
+    title: 'Why has my order not shipped yet?',
+    content:
       'Sorry about the delay. I can see the parcel has not been scanned by the carrier yet — I have asked them to re-scan it and will update you as soon as it moves.',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 143,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['orders.shipping_delay'],
   },
   {
-    id: 'faq-7',
+    id: 'article-7',
     category: 'General',
-    question: "What's your return policy?",
-    answer: 'Returns are free within 30 days of delivery. Would you like a return label?',
+    title: "What's your return policy?",
+    content: 'Returns are free within 30 days of delivery. Would you like a return label?',
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 401,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['faq.return_policy'],
   },
   {
-    id: 'faq-8',
+    id: 'article-8',
     category: 'General',
-    question: 'What are your store hours?',
-    answer: "We're open 9am to 7pm on weekdays and 10am to 4pm on Saturdays.",
+    title: 'What are your store hours?',
+    content: "We're open 9am to 7pm on weekdays and 10am to 4pm on Saturdays.",
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 89,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['faq.store_hours'],
   },
   {
-    id: 'faq-9',
+    id: 'article-9',
     category: 'Billing',
-    question: 'Can I get a copy of a past invoice?',
-    answer: "I've emailed a copy of the invoice to the address on your account.",
+    title: 'Can I get a copy of a past invoice?',
+    content: "I've emailed a copy of the invoice to the address on your account.",
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 122,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['billing.invoice_copy'],
   },
   {
-    id: 'faq-10',
+    id: 'article-10',
     category: 'Product',
-    question: 'My order arrived damaged. What are my options?',
-    answer:
+    title: 'My order arrived damaged. What are my options?',
+    content:
       "I'm sorry about that — a damaged item qualifies for a free replacement or a full refund, whichever you'd prefer.",
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 97,
+    lastTrainedOn: '05-Jan-2026',
     author: jamesKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['orders.damaged_item'],
   },
   {
-    id: 'faq-11',
+    id: 'article-11',
     category: 'Technical',
-    question: 'Are you seeing issues with the checkout API right now?',
-    answer:
+    title: 'Are you seeing issues with the checkout API right now?',
+    content:
       "I can check current system status for you. If there's an active incident, our status page will have the latest, and I can loop in an engineer if it's still failing.",
+    status: 'indexed',
+    audience: 'public',
     isEnabled: true,
+    chunks: 1,
     answersServed: 34,
+    lastTrainedOn: '05-Jan-2026',
     author: ramKatwal,
     addedOn: '05-Jan-2026',
     matchedIntents: ['technical.api_timeout'],
   },
 ]
 
-export const faqCategories: FaqCategory[] = ['Product', 'Technical', 'Billing', 'General']
+export const articleCategories: ArticleCategory[] = ['Product', 'Technical', 'Billing', 'General']
 
 /** The pages a scan can discover, most-linked-from-homepage first. */
 const SCRAPE_PAGE_POOL: { path: string; title: string }[] = [
@@ -335,6 +379,6 @@ export function createDefaultAuthor(): SourceAuthor {
   return jamesKatwal
 }
 
-export function createFaqAuthor(): SourceAuthor {
+export function createArticleAuthor(): SourceAuthor {
   return ramKatwal
 }

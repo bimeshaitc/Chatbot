@@ -1,3 +1,3 @@
 export { BotTrainingPage } from './components/BotTrainingPage'
-export { initialFaqs } from './data/mockBotTrainingData'
-export type { SourceDocument, SourceUrl, SourceFaq, TrainingStatus } from './types'
+export { initialArticles } from './data/mockBotTrainingData'
+export type { SourceDocument, SourceUrl, SourceArticle, TrainingStatus } from './types'

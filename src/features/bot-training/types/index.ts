@@ -45,9 +45,8 @@ export interface SourceUrl extends TrainableSource {
   label: string
   url: string
   sizeLabel: string
-  crawlDepth: string
-  /** How many pages the crawl was capped at when this source was added. Not set on older/seeded sources. */
-  maxPages?: string
+  /** Whether this source came from one page or a multi-page site crawl. */
+  pageMode: 'single' | 'multiple'
 }
 
 /**

@@ -160,9 +160,9 @@ export function KnowledgeBasePage() {
     toast.info('Document deleted')
   }
 
-  function handleAddLink(link: InternalLink) {
-    setLinks((prev) => [link, ...prev])
-    toast.success(`${link.label} added`)
+  function handleAddLinks(links: InternalLink[]) {
+    setLinks((prev) => [...links, ...prev])
+    toast.success(`${links.length} link${links.length === 1 ? '' : 's'} added`)
   }
 
   function handleDeleteLink(id: string) {
@@ -556,7 +556,7 @@ export function KnowledgeBasePage() {
         open={isLinkDialogOpen}
         groupOptions={groupOptions}
         onOpenChange={setLinkDialogOpen}
-        onAdd={handleAddLink}
+        onAdd={handleAddLinks}
       />
     </div>
   )

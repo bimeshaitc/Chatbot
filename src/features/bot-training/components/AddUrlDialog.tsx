@@ -3,7 +3,6 @@ import { Globe } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn, generateId } from '@/lib/utils'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogBody,
@@ -13,13 +12,15 @@ import {
   DialogPrimaryButton,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { createDefaultAuthor, crawlDepthOptions, maxPagesOptions, scrapePagesFor } from '../data/mockBotTrainingData'
+import { createDefaultAuthor, scrapePagesFor } from '../data/mockBotTrainingData'
 import { formatToday } from '../utils/formatDate'
-import type { ScrapedPage, SourceAudience, SourceUrl } from '../types'
+import type { ScrapedPage, SourceUrl } from '../types'
 
-const audienceOptions: { value: SourceAudience; label: string }[] = [
-  { value: 'public', label: 'Anyone' },
-  { value: 'signed-in', label: 'Signed-in customers' },
+type PageMode = 'single' | 'multiple'
+
+const pageModeOptions: { value: PageMode; label: string }[] = [
+  { value: 'single', label: 'Single page' },
+  { value: 'multiple', label: 'Multiple pages (crawl site)' },
 ]
 
 /** How long a page sits before the next one pops into the list — a live feed of what the crawler is finding, not a static list appearing all at once. */
@@ -37,9 +38,7 @@ interface AddUrlDialogProps {
 export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [sourceName, setSourceName] = useState('')
-  const [crawlDepth, setCrawlDepth] = useState<string | null>(null)
-  const [maxPages, setMaxPages] = useState<string | null>(null)
-  const [audience, setAudience] = useState<SourceAudience>('public')
+  const [pageMode, setPageMode] = useState<PageMode>('single')
   const [error, setError] = useState<string | null>(null)
 
   const [scanState, setScanState] = useState<ScanState>('idle')
@@ -70,19 +69,28 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
     timers.current.add(id)
   }
 
-  function resetForm() {
+  function resetScan() {
     timers.current.forEach(clearTimeout)
     timers.current.clear()
-    setWebsiteUrl('')
-    setSourceName('')
-    setCrawlDepth(null)
-    setMaxPages(null)
-    setAudience('public')
-    setError(null)
     setScanState('idle')
     setDiscovered([])
     setVisibleCount(0)
     setSelectedPaths(new Set())
+  }
+
+  function resetForm() {
+    resetScan()
+    setWebsiteUrl('')
+    setSourceName('')
+    setPageMode('single')
+    setError(null)
+  }
+
+  function selectPageMode(mode: PageMode) {
+    if (mode === pageMode) return
+    setPageMode(mode)
+    resetScan()
+    setError(null)
   }
 
   function handleScan() {
@@ -96,17 +104,9 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
       setError('Enter a valid URL.')
       return
     }
-    if (!crawlDepth) {
-      setError('Select a crawl depth.')
-      return
-    }
-    if (!maxPages) {
-      setError('Select a page limit.')
-      return
-    }
 
     setError(null)
-    const pages = scrapePagesFor(crawlDepth, Number(maxPages))
+    const pages = scrapePagesFor()
     setDiscovered(pages)
     setVisibleCount(0)
     setSelectedPaths(new Set())
@@ -128,6 +128,39 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
   }
 
   function handleSubmit() {
+    if (pageMode === 'single') {
+      if (!websiteUrl.trim()) {
+        setError('Website URL is required.')
+        return
+      }
+      try {
+        new URL(websiteUrl)
+      } catch {
+        setError('Enter a valid URL.')
+        return
+      }
+
+      const entry: SourceUrl = {
+        id: generateId(),
+        label: sourceName.trim() || websiteUrl,
+        url: websiteUrl,
+        sizeLabel: 'Pending crawl',
+        status: 'queued',
+        audience: 'public',
+        isEnabled: true,
+        chunks: 0,
+        answersServed: 0,
+        lastTrainedOn: 'Never',
+        pageMode: 'single',
+        author: createDefaultAuthor(),
+        addedOn: formatToday(),
+      }
+      onAdd([entry])
+      resetForm()
+      onOpenChange(false)
+      return
+    }
+
     if (scanState !== 'done') {
       handleScan()
       return
@@ -137,9 +170,6 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
       setError('Select at least one page to add.')
       return
     }
-    // Guaranteed set by `handleScan` before scanState could ever reach 'done' —
-    // re-checked so TypeScript can narrow both to non-null below.
-    if (!crawlDepth || !maxPages) return
 
     const base = new URL(websiteUrl)
     const entries: SourceUrl[] = selectedPages.map((page) => {
@@ -156,13 +186,12 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
         url: pageUrl,
         sizeLabel: 'Pending crawl',
         status: 'queued',
-        audience,
+        audience: 'public',
         isEnabled: true,
         chunks: 0,
         answersServed: 0,
         lastTrainedOn: 'Never',
-        crawlDepth,
-        maxPages,
+        pageMode: 'multiple',
         author: createDefaultAuthor(),
         addedOn: formatToday(),
       }
@@ -193,54 +222,22 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
 
             <div className="flex flex-col gap-1">
               <Input label="Source Name" placeholder="Enter name here" value={sourceName} onChange={(e) => setSourceName(e.target.value)} />
-              <span className="text-xs text-gray-400">If left empty, each page's own title is used</span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700">Crawl depth *</span>
-                <Select value={crawlDepth} onValueChange={(value) => setCrawlDepth(value as string)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="select depth" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {crawlDepthOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700">Max pages *</span>
-                <Select value={maxPages} onValueChange={(value) => setMaxPages(value as string)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="select limit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {maxPagesOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <span className="text-xs text-gray-400">
+                {pageMode === 'single' ? 'If left empty, the URL is used as the name' : "If left empty, each page's own title is used"}
+              </span>
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-700">Who may see answers from this source?</span>
+              <span className="text-sm font-medium text-gray-700">How many pages?</span>
               <div className="flex flex-wrap gap-1.5">
-                {audienceOptions.map((option) => (
+                {pageModeOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setAudience(option.value)}
+                    onClick={() => selectPageMode(option.value)}
                     className={cn(
                       'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                      audience === option.value
+                      pageMode === option.value
                         ? 'border-[#1B5E20] bg-[#1B5E20] text-white'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
                     )}
@@ -249,11 +246,13 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-400">Staff-only material belongs in the Knowledge Base section, not here.</p>
+              <p className="text-xs text-gray-400">
+                {pageMode === 'single' ? 'Just this one page is added.' : "We'll scan the site and let you pick which pages to add."}
+              </p>
             </div>
           </fieldset>
 
-          {scanState !== 'idle' && (
+          {pageMode === 'multiple' && scanState !== 'idle' && (
             <div className="mt-1 flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3">
               {scanState === 'scanning' ? (
                 <div className="flex items-center gap-2">
@@ -327,9 +326,10 @@ export function AddUrlDialog({ open, onOpenChange, onAdd }: AddUrlDialogProps) {
         </DialogBody>
         <DialogFooter>
           <DialogPrimaryButton onClick={handleSubmit} disabled={scanState === 'scanning'}>
-            {scanState === 'idle' && 'Scan site'}
-            {scanState === 'scanning' && 'Scanning…'}
-            {scanState === 'done' && `Add ${selectedPaths.size} page${selectedPaths.size === 1 ? '' : 's'}`}
+            {pageMode === 'single' && 'Add URL'}
+            {pageMode === 'multiple' && scanState === 'idle' && 'Scan site'}
+            {pageMode === 'multiple' && scanState === 'scanning' && 'Scanning…'}
+            {pageMode === 'multiple' && scanState === 'done' && `Add ${selectedPaths.size} page${selectedPaths.size === 1 ? '' : 's'}`}
           </DialogPrimaryButton>
         </DialogFooter>
       </DialogContent>

@@ -621,12 +621,16 @@ BACKEND_STORIES = [
           "an ingestion pipeline for training documents and URLs that produces indexed, retrievable chunks",
           "the bot has an accurate, current knowledge base to answer from",
           ["Uploading a document or adding a URL enqueues an indexing job (status: queued -> indexing -> indexed/failed)",
+           "Adding a URL first runs a discovery scan, bounded by a caller-supplied crawl depth (1/2/3 levels) and max-page cap (10/25/50/100), returning each candidate page's title, path, and a short content preview for the admin to pick from before anything is indexed — the discovery contract AI-13 builds its ranking/preview behavior on",
+           "Only pages the admin selects from that discovery result are enqueued as sources, one page per source (never one job per whole site)",
            "A failed job records a specific, actionable failure reason",
            "Disabling a source stops it from being used for answers without deleting its indexed data",
            "Retrain re-runs ingestion for an existing source and updates lastTrainedOn"],
           ["A source that fails repeatedly surfaces this clearly rather than silently retrying forever",
            "Re-indexing an updated URL/document does not leave orphaned old chunks being served",
-           "Crawl depth is bounded/configurable to avoid runaway crawling on 'add URL'"]),
+           "A page the crawler can't authenticate to (e.g. sign-in required) is still returned from discovery, flagged with a specific reason (e.g. '401 Unauthorized'), rather than silently omitted",
+           "Re-running discovery against the same URL/depth/max-pages is deterministic — the same pages come back, not a different set each time",
+           "Crawl depth and max-page cap are enforced together server-side even if a client omits or tampers with them"]),
 
     story("BE-16", "Widget/bot settings configuration service", "bot-settings frontend / widget runtime",
           "persisted widget configuration that both the admin UI and the live customer-facing widget read",
@@ -818,6 +822,20 @@ AI_STORIES = [
            "Delete removes the source and its chunks from the retrievable index, not just from the admin list view"],
           ["Disabling a heavily-used source (high answers-served) still takes effect immediately, no matter how much traffic it was serving",
            "A retrain triggered while a previous indexing job for the same source is still running is queued or rejected, never run concurrently against the same source"]),
+
+    story("AI-13", "Website crawl: page discovery and per-page source creation", "bot-training system",
+          "a submitted website URL to be crawled — discovering individual pages up to a chosen depth and page limit",
+          "admins can review real, specific pages and choose exactly which ones become trainable sources, instead of blindly training on an entire site",
+          ["Builds on BE-15's discovery contract (Epic 6 — Knowledge & Canned Content): BE-15 owns crawling, the discovery scan, and the status pipeline; this story owns turning each discovered page into an accurate title/path/content preview an admin can judge",
+           "Submitting a URL with a crawl depth (1/2/3 levels deep) and a max-page cap (10/25/50/100) starts a real crawl that discovers pages progressively, each with a title, path, and short content preview — not a single bulk result",
+           "Depth and max-pages combine correctly as hard caps: a 1-level-deep crawl never returns more pages than that depth could reach, even if the page cap is higher",
+           "Each page the admin selects from the discovered list becomes its own independent trainable source (one page = one source) and enters the same status pipeline as AI-06 (queued -> indexing -> indexed/failed)",
+           "A page's source name defaults to that page's own title; an optional source-name prefix, if provided, is applied consistently to every page added from that scan",
+           "The audience setting (Anyone / Signed-in customers) chosen once for the scan applies to every page created from it"],
+          ["A discovered page the crawler can't access (e.g. sign-in required) is not silently dropped — it is still listed, marked failed with a specific reason (e.g. '401 Unauthorized'), and visible to the admin",
+           "Re-running 'Rescan' against the same URL/depth/max-pages returns a consistent, repeatable set of pages, not a different random result each time",
+           "A page deselected before submitting is never created as a source at all (not created-then-disabled)",
+           "A page whose content changes after being added is picked up correctly by the existing retrain flow (AI-12) — the crawl origin doesn't create a separate update path"]),
 ]
 
 # ---------------------------------------------------------------------------

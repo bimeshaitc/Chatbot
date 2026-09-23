@@ -108,7 +108,7 @@ export const initialWebsiteUrls: SourceUrl[] = [
     isEnabled: true,
     chunks: 421,
     answersServed: 1240,
-    crawlDepth: '3',
+    pageMode: 'multiple',
     lastTrainedOn: '20-Dec-2025',
     author: jamesKatwal,
     addedOn: '25-Jan-2025',
@@ -123,7 +123,7 @@ export const initialWebsiteUrls: SourceUrl[] = [
     isEnabled: true,
     chunks: 22,
     answersServed: 396,
-    crawlDepth: '1',
+    pageMode: 'single',
     lastTrainedOn: '20-Dec-2025',
     author: jamesKatwal,
     addedOn: '25-Jan-2025',
@@ -138,7 +138,7 @@ export const initialWebsiteUrls: SourceUrl[] = [
     isEnabled: true,
     chunks: 0,
     answersServed: 0,
-    crawlDepth: '2',
+    pageMode: 'multiple',
     lastTrainedOn: 'Never',
     author: ramKatwal,
     addedOn: '22-Dec-2025',
@@ -153,7 +153,7 @@ export const initialWebsiteUrls: SourceUrl[] = [
     isEnabled: true,
     chunks: 0,
     answersServed: 0,
-    crawlDepth: '2',
+    pageMode: 'multiple',
     lastTrainedOn: 'Never',
     failureReason: 'Crawler received 401 Unauthorized. The page needs a sign-in the crawler does not have.',
     author: ramKatwal,
@@ -295,19 +295,6 @@ export const initialFaqs: SourceFaq[] = [
 
 export const faqCategories: FaqCategory[] = ['Product', 'Technical', 'Billing', 'General']
 
-export const crawlDepthOptions: { value: string; label: string }[] = [
-  { value: '1', label: '1 level deep' },
-  { value: '2', label: '2 levels deep' },
-  { value: '3', label: '3 levels deep' },
-]
-
-export const maxPagesOptions: { value: string; label: string }[] = [
-  { value: '10', label: 'Up to 10 pages' },
-  { value: '25', label: 'Up to 25 pages' },
-  { value: '50', label: 'Up to 50 pages' },
-  { value: '100', label: 'Up to 100 pages' },
-]
-
 /** The pages a scan can discover, most-linked-from-homepage first. */
 const SCRAPE_PAGE_POOL: { path: string; title: string }[] = [
   { path: '/', title: 'Home' },
@@ -327,17 +314,17 @@ const SCRAPE_PAGE_POOL: { path: string; title: string }[] = [
   { path: '/terms', title: 'Terms of service' },
 ]
 
+/** How many pages a "multiple pages" crawl surfaces — fixed, not admin-configurable. */
+const MULTI_PAGE_SCAN_CAP = 10
+
 /**
  * Simulates what crawling a site would turn up, for the Add URL dialog's
- * page picker. A deeper crawl reaches further into the pool; `maxPages` caps
- * it further on top. Deterministic (no `Math.random`) so re-scanning the
- * same depth/cap always finds the same pages, which reads as a real crawl
- * rather than a slot machine.
+ * page picker in "multiple pages" mode. Deterministic (no `Math.random`) so
+ * re-scanning the same site always finds the same pages, which reads as a
+ * real crawl rather than a slot machine.
  */
-export function scrapePagesFor(crawlDepth: string, maxPages: number): ScrapedPage[] {
-  const depthBudget = crawlDepth === '1' ? 4 : crawlDepth === '2' ? 9 : SCRAPE_PAGE_POOL.length
-  const count = Math.max(1, Math.min(maxPages, depthBudget, SCRAPE_PAGE_POOL.length))
-  return SCRAPE_PAGE_POOL.slice(0, count).map((page, index) => {
+export function scrapePagesFor(): ScrapedPage[] {
+  return SCRAPE_PAGE_POOL.slice(0, MULTI_PAGE_SCAN_CAP).map((page, index) => {
     const words = 120 + index * 45
     const detected = index % 3 === 0 ? 'a contact form' : index % 3 === 1 ? 'a pricing table' : 'no forms'
     return { ...page, preview: `~${words} words rendered · ${detected} detected.` }

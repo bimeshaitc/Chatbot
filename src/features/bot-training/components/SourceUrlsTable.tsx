@@ -26,7 +26,7 @@ export function SourceUrlsTable({ urls, canManage, canRetrain, onDelete, onToggl
           <tr className="border-b border-gray-200 bg-[#F7F7F8] text-xs tracking-wide text-gray-600 uppercase">
             <th className="p-4 font-medium">URL source</th>
             <th className="p-4 font-medium">Training</th>
-            <th className="p-4 font-medium">Depth</th>
+            <th className="p-4 font-medium">Pages</th>
             <th className="p-4 font-medium">Chunks</th>
             <th className="p-4 font-medium">Audience</th>
             <th className="p-4 font-medium">Answers</th>
@@ -57,7 +57,7 @@ export function SourceUrlsTable({ urls, canManage, canRetrain, onDelete, onToggl
                   failureReason={entry.failureReason}
                 />
               </td>
-              <td className="p-4 text-gray-600">{entry.crawlDepth}</td>
+              <td className="p-4 text-gray-600">{entry.pageMode === 'single' ? 'Single page' : 'Multiple pages'}</td>
               <td className="p-4 text-gray-600">{entry.chunks || '—'}</td>
               <td className="p-4">
                 <AudienceBadge audience={entry.audience} />

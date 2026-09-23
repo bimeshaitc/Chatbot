@@ -27,6 +27,11 @@ export const articleCategories: ArticleCategory[] = [
   'Escalation',
   'Policy',
   'Onboarding',
+  'Shipping',
+  'Billing',
+  'Account',
+  'Product',
+  'General',
 ]
 
 // Group vocabulary now lives in `stores/useGroupsStore.ts`, shared with
@@ -129,7 +134,7 @@ export const initialArticles: InternalArticle[] = [
     title: 'Standard shipping times by region',
     summary: 'Approved wording for how long delivery takes, by region — safe to share with customers and to feed the chatbot.',
     body: 'Domestic: 2-4 business days. Regional (same continent): 5-8 business days. International: 7-14 business days, plus customs clearance time we do not control. These are estimates, not guarantees — never promise a specific delivery date.',
-    category: 'Procedure',
+    category: 'Shipping',
     groups: [],
     visibility: 'public',
     reviewStatus: 'current',
@@ -176,7 +181,7 @@ export const initialDocuments: InternalDocument[] = [
     id: 'idoc-4',
     name: 'Shipping & returns policy.pdf',
     sizeLabel: '210 kb',
-    category: 'Policy',
+    category: 'Shipping',
     groups: [],
     visibility: 'public',
     owner: jamesKatwal,
@@ -209,7 +214,7 @@ export const initialLinks: InternalLink[] = [
     id: 'ilink-3',
     label: 'Public help center',
     url: 'https://help.example.com',
-    category: 'Policy',
+    category: 'General',
     groups: [],
     visibility: 'public',
     owner: janeSmith,

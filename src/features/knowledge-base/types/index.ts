@@ -8,7 +8,27 @@
  * where the bot side cares about indexing state and answer coverage.
  */
 
-export type ArticleCategory = 'Playbook' | 'Procedure' | 'Escalation' | 'Policy' | 'Onboarding'
+/**
+ * One shared list for both Internal and Public knowledge, rather than a
+ * separate list per `KnowledgeVisibility`. Splitting by visibility would mean
+ * remapping every existing item's category whenever it toggles between
+ * Internal and Public, and clearing/re-validating the field in the edit
+ * dialogs — a real maintenance cost for a problem a longer, mixed list
+ * already solves: the first five read as staff workflow (a Playbook or an
+ * Escalation is never customer-facing), the rest as customer topics (nobody
+ * writing a public "Shipping" article would reach for "Onboarding").
+ */
+export type ArticleCategory =
+  | 'Playbook'
+  | 'Procedure'
+  | 'Escalation'
+  | 'Policy'
+  | 'Onboarding'
+  | 'Shipping'
+  | 'Billing'
+  | 'Account'
+  | 'Product'
+  | 'General'
 
 /** How much a page can be trusted right now. */
 export type ReviewStatus = 'current' | 'due' | 'stale' | 'draft'

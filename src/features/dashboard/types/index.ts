@@ -7,11 +7,6 @@ export interface StatCard {
   accent: 'green' | 'blue' | 'purple' | 'orange'
 }
 
-export interface CategoryTicket {
-  label: string
-  count: number
-}
-
 export interface TrendPoint {
   day: string
   received: number

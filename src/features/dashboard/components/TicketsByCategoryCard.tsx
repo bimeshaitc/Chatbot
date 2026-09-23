@@ -1,23 +1,30 @@
 import { useMemo } from 'react'
 import { InfoTip } from '@/components/InfoTip'
 import { CATEGORICAL, INK } from '@/lib/vizTokens'
-import { ticketsByCategory } from '../data/mockDashboardData'
+import { useCategories } from '@/features/category'
+import { ACTIVE_TICKET_STATUSES, useTickets } from '@/features/tickets'
 
 export function TicketsByCategoryCard() {
+  const { tickets } = useTickets()
+  const { categories } = useCategories()
+
   const rows = useMemo(() => {
-    // Aggregate by label rather than trusting one row per category: two rows
-    // for the same category must read as one bar, never as two.
+    const nameById = new Map(categories.map((category) => [category.id, category.name]))
+
+    // Group by categoryId, not by display name: two categories could share a
+    // name, and a bar must reflect one real category, never a text collision.
     const totals = new Map<string, number>()
-    for (const entry of ticketsByCategory) {
-      totals.set(entry.label, (totals.get(entry.label) ?? 0) + entry.count)
+    for (const ticket of tickets) {
+      if (ticket.placement !== 'inbox' || !ACTIVE_TICKET_STATUSES.includes(ticket.status)) continue
+      totals.set(ticket.categoryId, (totals.get(ticket.categoryId) ?? 0) + 1)
     }
 
     // Ranked, because the question this card answers is "what is biggest?".
     // Unsorted bars force the reader to compare every number by eye.
     return [...totals.entries()]
-      .map(([label, count]) => ({ label, count }))
+      .map(([categoryId, count]) => ({ label: nameById.get(categoryId) ?? 'Uncategorized', count }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-  }, [])
+  }, [tickets, categories])
 
   const total = rows.reduce((sum, row) => sum + row.count, 0)
   const max = Math.max(0, ...rows.map((row) => row.count))

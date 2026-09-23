@@ -1,4 +1,4 @@
-import type { CategoryTicket, RecentConversation, StatCard, TopAgent, TrendPoint } from '../types'
+import type { RecentConversation, StatCard, TopAgent, TrendPoint } from '../types'
 
 export const statCards: StatCard[] = [
   {
@@ -29,23 +29,6 @@ export const statCards: StatCard[] = [
     accent: 'orange',
     description: 'Average customer satisfaction rating out of 5, from post-chat surveys answered in the period.',
   },
-]
-
-/**
- * One row per category. This used to contain 'Services' and 'Financial
- * Support' twice with different counts, which rendered as six bars for four
- * categories and made the chart unreadable — the same name twice showing
- * different numbers has no interpretation.
- *
- * The card still aggregates by label defensively, so a real endpoint returning
- * split rows sums them rather than drawing duplicates.
- */
-export const ticketsByCategory: CategoryTicket[] = [
-  { label: 'Billing and Subscription', count: 18 },
-  { label: 'Services', count: 15 },
-  { label: 'Financial Support', count: 10 },
-  { label: 'Technical Support', count: 7 },
-  { label: 'Onboarding', count: 4 },
 ]
 
 export const conversationsTrend: TrendPoint[] = [
